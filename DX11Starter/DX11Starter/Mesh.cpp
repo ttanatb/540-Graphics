@@ -1,5 +1,7 @@
 #include "Mesh.h"
 
+Mesh* Mesh::cubeMeshPtr = nullptr;
+
 Mesh::Mesh(Vertex * vertices, int vertexCount, int * indices, int indexCount, ID3D11Device * device)
 {
 	this->indexCount = indexCount;
@@ -54,7 +56,7 @@ ID3D11Buffer * Mesh::GetVertexBuffer() { return vertexBuffer; }
 ID3D11Buffer * Mesh::GetIndexBuffer() {	return indexBuffer; }
 int Mesh::GetIndexCount() { return indexCount; }
 
-Mesh * Mesh::CreateCube(ID3D11Device* device, float size, Color c)
+void Mesh::CreateCube(ID3D11Device* device, float size, Color c)
 {
 	Vertex vertices[] =
 	{
@@ -84,7 +86,18 @@ Mesh * Mesh::CreateCube(ID3D11Device* device, float size, Color c)
 		1, 4, 5,
 	};
 
-	return new Mesh(vertices, 8, indices, 36, device);
+	cubeMeshPtr = new Mesh(vertices, 8, indices, 36, device);
+}
+
+void Mesh::ReleasePrimitives()
+{
+	if (cubeMeshPtr != nullptr)
+		delete(cubeMeshPtr);
+}
+
+Mesh * Mesh::GetCubeMeshPtr()
+{
+	return cubeMeshPtr;
 }
 
 void Mesh::Release()

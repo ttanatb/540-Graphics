@@ -13,11 +13,14 @@ public:
 	ID3D11Buffer* GetIndexBuffer();
 	int GetIndexCount();
 
-	static Mesh* CreateCube(ID3D11Device* device, float size = 0.5f, Color c = Color::Red());
+	static void CreateCube(ID3D11Device* device, float size = 0.5f, Color c = Color::Red());
+	static void ReleasePrimitives();
+	static Mesh* GetCubeMeshPtr();
 private:
 	ID3D11Buffer* vertexBuffer = nullptr;
 	ID3D11Buffer* indexBuffer = nullptr;
 	int indexCount = 0;
 
 	void Release();
+	static Mesh* cubeMeshPtr; 
 };

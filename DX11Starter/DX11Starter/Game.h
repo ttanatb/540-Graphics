@@ -2,7 +2,8 @@
 
 #include "DXCore.h"
 #include "SimpleShader.h"
-#include "Mesh.h"
+#include "GameEntity.h"
+#include <vector>
 
 class Game 
 	: public DXCore
@@ -35,6 +36,9 @@ private:
 	Mesh* mesh1;
 	Mesh* mesh2;
 	Mesh* mesh3;
+
+	// Game entities
+	std::vector<GameEntity*> gameEntities;
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;

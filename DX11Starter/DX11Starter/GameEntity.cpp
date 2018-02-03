@@ -72,6 +72,16 @@ void GameEntity::SetMesh(Mesh* mesh)
 	meshPtr = mesh;
 }
 
+Material * GameEntity::GetMat()
+{
+	return matPtr;
+}
+
+void GameEntity::SetMat(Material * newMat)
+{
+	matPtr = newMat;
+}
+
 void GameEntity::TranslateBy(float x, float y, float z)
 {
 	TranslateBy(vec3(x, y, z));

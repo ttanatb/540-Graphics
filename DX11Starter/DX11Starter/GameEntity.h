@@ -1,5 +1,6 @@
 #pragma once
 #include "Mesh.h"
+#include "Material.h"
 class GameEntity {
 private:
 	mat4 worldMatrix;// = MAT4_IDENTITY;
@@ -10,8 +11,10 @@ private:
 	vec3 scale;// = vec3(1.0f, 1.0f, 1.0f);
 
 	Mesh* meshPtr = nullptr;
+	Material* matPtr = nullptr;
 
 	void Init();
+
 public:
 	GameEntity();
 	GameEntity(Mesh* mesh = nullptr, vec3 position = vec3(0.0f, 0.0f, 0.0f), vec4 rotation = vec4(0.0f, 0.0f, 0.0f, 1.0f), vec3 scale = vec3(1.0f, 1.0f, 1.0f));
@@ -27,6 +30,9 @@ public:
 
 	Mesh* GetMesh();
 	void SetMesh(Mesh* mesh);
+
+	Material * GetMat();
+	void SetMat(Material * newMat);
 
 	void SetPosition(vec3 newPos);
 	void SetPosition(float x, float y, float z);

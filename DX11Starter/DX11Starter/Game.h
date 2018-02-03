@@ -2,7 +2,9 @@
 
 #include "DXCore.h"
 #include "SimpleShader.h"
+#include "Input.h"
 #include "GameEntity.h"
+#include "Camera.h"
 #include <vector>
 
 class Game 
@@ -31,11 +33,20 @@ private:
 	void LoadShaders(); 
 	void CreateMatrices();
 	void CreateBasicGeometry();
+	void InitInput();
+
+	Input* inputPtr;
 
 	// Mesh objects
 	Mesh* mesh1;
 	Mesh* mesh2;
 	Mesh* mesh3;
+
+	//Material
+	Material* basicMat;
+
+	//camera
+	Camera* camera;
 
 	// Game entities
 	std::vector<GameEntity*> gameEntities;
@@ -45,9 +56,9 @@ private:
 	SimplePixelShader* pixelShader;
 
 	// The matrices to go from model space to screen space
-	DirectX::XMFLOAT4X4 worldMatrix;
-	DirectX::XMFLOAT4X4 viewMatrix;
-	DirectX::XMFLOAT4X4 projectionMatrix;
+	//DirectX::XMFLOAT4X4 worldMatrix;
+	//DirectX::XMFLOAT4X4 viewMatrix;
+	//DirectX::XMFLOAT4X4 projectionMatrix;
 
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.

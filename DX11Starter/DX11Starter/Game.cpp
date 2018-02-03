@@ -26,6 +26,7 @@ Game::Game(HINSTANCE hInstance)
 	mesh1 = nullptr;
 	mesh2 = nullptr;
 	mesh3 = nullptr;
+	camera = nullptr;
 	vertexShader = 0;
 	pixelShader = 0;
 
@@ -54,6 +55,9 @@ Game::~Game()
 	
 	if (mesh1 != nullptr) delete mesh1;
 	if (mesh3 != nullptr) delete mesh3;
+	if (camera != nullptr) delete camera;
+	if (basicMat != nullptr) delete basicMat;
+	Input::ReleaseInstance();
 
 	// Delete our simple shader objects, which
 	// will clean up their own internal DirectX stuff
@@ -73,6 +77,7 @@ void Game::Init()
 	LoadShaders();
 	CreateMatrices();
 	CreateBasicGeometry();
+	InitInput();
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -93,6 +98,8 @@ void Game::LoadShaders()
 
 	pixelShader = new SimplePixelShader(device, context);
 	pixelShader->LoadShaderFile(L"PixelShader.cso");
+
+	basicMat = new Material(vertexShader, pixelShader);
 }
 
 
@@ -103,14 +110,20 @@ void Game::LoadShaders()
 // --------------------------------------------------------
 void Game::CreateMatrices()
 {
+	camera = new Camera((float)width, 
+		(float)height, 
+		vec3(0.0f, 0.0f, -5.0f), 
+		0.0f, 0.0f);
+
+
 	// Set up world matrix
 	// - In an actual game, each object will need one of these and they should
 	//    update when/if the object moves (every frame)
 	// - You'll notice a "transpose" happening below, which is redundant for
 	//    an identity matrix.  This is just to show that HLSL expects a different
 	//    matrix (column major vs row major) than the DirectX Math library
-	XMMATRIX W = XMMatrixIdentity();
-	XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(W)); // Transpose for HLSL!
+	//XMMATRIX W = XMMatrixIdentity();
+	//XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(W)); // Transpose for HLSL!
 
 	// Create the View matrix
 	// - In an actual game, recreate this matrix every time the camera 
@@ -119,24 +132,24 @@ void Game::CreateMatrices()
 	//    camera and the direction vector along which to look (as well as "up")
 	// - Another option is the LOOK AT function, to look towards a specific
 	//    point in 3D space
-	XMVECTOR pos = XMVectorSet(0, 0, -5, 0);
-	XMVECTOR dir = XMVectorSet(0, 0, 1, 0);
-	XMVECTOR up = XMVectorSet(0, 1, 0, 0);
-	XMMATRIX V = XMMatrixLookToLH(
-		pos,     // The position of the "camera"
-		dir,     // Direction the camera is looking
-		up);     // "Up" direction in 3D space (prevents roll)
-	XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(V)); // Transpose for HLSL!
+	//XMVECTOR pos = XMVectorSet(0, 0, -5, 0);
+	//XMVECTOR dir = XMVectorSet(0, 0, 1, 0);
+	//XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+	//XMMATRIX V = XMMatrixLookToLH(
+	//	pos,     // The position of the "camera"
+	//	dir,     // Direction the camera is looking
+	//	up);     // "Up" direction in 3D space (prevents roll)
+	//XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(V)); // Transpose for HLSL!
 
-	// Create the Projection matrix
-	// - This should match the window's aspect ratio, and also update anytime
-	//    the window resizes (which is already happening in OnResize() below)
-	XMMATRIX P = XMMatrixPerspectiveFovLH(
-		0.25f * 3.1415926535f,		// Field of View Angle
-		(float)width / height,		// Aspect ratio
-		0.1f,						// Near clip plane distance
-		100.0f);					// Far clip plane distance
-	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
+	//// Create the Projection matrix
+	//// - This should match the window's aspect ratio, and also update anytime
+	////    the window resizes (which is already happening in OnResize() below)
+	//XMMATRIX P = XMMatrixPerspectiveFovLH(
+	//	0.25f * 3.1415926535f,		// Field of View Angle
+	//	(float)width / height,		// Aspect ratio
+	//	0.1f,						// Near clip plane distance
+	//	100.0f);					// Far clip plane distance
+	//XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
 
@@ -186,7 +199,19 @@ void Game::CreateBasicGeometry()
 	gameEntities.push_back(new GameEntity(mesh2, vec3(0.5f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(-2.0f, -2.0f, 1.0f)));
 	gameEntities.push_back(new GameEntity(mesh1, vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 	gameEntities.push_back(new GameEntity(mesh3, vec3(-4.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
+
+	for (size_t i = 0; i < gameEntities.size(); ++i) {
+		gameEntities[i]->SetMat(basicMat);
+	}
 }
+
+void Game::InitInput()
+{
+	inputPtr = Input::GetInstance();
+	char usedChars[6] = { 'W', 'S', 'A', 'D', ' ', 'X' };
+	inputPtr->AddKeysToPollFor(usedChars, 6);
+}
+
 
 
 // --------------------------------------------------------
@@ -197,14 +222,14 @@ void Game::OnResize()
 {
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
-
+	camera->SetWidthHeight((float)width, (float)height);
 	// Update our projection matrix since the window size changed
-	XMMATRIX P = XMMatrixPerspectiveFovLH(
-		0.25f * 3.1415926535f,	// Field of View Angle
-		(float)width / height,	// Aspect ratio
-		0.1f,				  	// Near clip plane distance
-		100.0f);			  	// Far clip plane distance
-	XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
+	//XMMATRIX P = XMMatrixPerspectiveFovLH(
+	//	0.25f * 3.1415926535f,	// Field of View Angle
+	//	(float)width / height,	// Aspect ratio
+	//	0.1f,				  	// Near clip plane distance
+	//	100.0f);			  	// Far clip plane distance
+	//XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
 // --------------------------------------------------------
@@ -212,6 +237,13 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	inputPtr->Update();
+	camera->Update();
+	//camera->Move(0.0f, cos(totalTime) / 800.0f, 0.0f);
+	//camera->RotateAroundRight(cos(totalTime) / 800.0f);
+	//camera->MoveAlongRight(sin(totalTime) / 200.0f);
+
+
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		gameEntities[i]->Update();
 	}
@@ -244,26 +276,14 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-
-	//camera stuff
-	vertexShader->SetMatrix4x4("view", viewMatrix);
-	vertexShader->SetMatrix4x4("projection", projectionMatrix);
-
-	// Set buffers in the input assembler
-
-	//ID3D11Buffer * vertexBuffer = mesh1->GetVertexBuffer();
-	//context->IASetVertexBuffers(0, 1, &(vertexBuffer), &stride, &offset);
-	//context->IASetIndexBuffer(mesh1->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();
-		if (meshPtr == nullptr) continue;
+		Material * matPtr = gameEntities[i]->GetMat();
+		if (meshPtr == nullptr || matPtr == nullptr) continue;
 
-		vertexShader->SetMatrix4x4("world", *(gameEntities[i]->GetWorldMat()));
-		vertexShader->CopyAllBufferData();
-
-		vertexShader->SetShader();
-		pixelShader->SetShader();
+		matPtr->PrepareMaterial(camera->GetViewMatTransposed(),
+			camera->GetProjMatTransposed(),
+			gameEntities[i]->GetWorldMat());
 
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;
@@ -274,29 +294,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		context->DrawIndexed(meshPtr->GetIndexCount(), 0, 0);
 	}
 
-	// Finally do the actual drawing
-	//  - Do this ONCE PER OBJECT you intend to draw
-	//  - This will use all of the currently set DirectX "stuff" (shaders, buffers, etc)
-	//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
-	//     vertices in the currently set VERTEX BUFFER
-	//context->DrawIndexed(
-	//	mesh1->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
-	//	0,     // Offset to the first index we want to use
-	//	0);    // Offset to add to each index when looking up vertices
-
-	//vertexBuffer = mesh2->GetVertexBuffer();
-	//context->IASetVertexBuffers(0, 1, &(vertexBuffer), &stride, &offset);
-	//context->IASetIndexBuffer(mesh2->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-	//context->DrawIndexed(mesh2->GetIndexCount(), 0, 0);
-
-	//vertexBuffer = mesh3->GetVertexBuffer();
-	//context->IASetVertexBuffers(0, 1, &(vertexBuffer), &stride, &offset);
-	//context->IASetIndexBuffer(mesh3->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
-	//context->DrawIndexed(mesh3->GetIndexCount(), 0, 0);
-
-	// Present the back buffer to the user
-	//  - Puts the final frame we're drawing into the window so the user can see it
-	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)
 	swapChain->Present(0, 0);
 }
 
@@ -311,6 +308,8 @@ void Game::Draw(float deltaTime, float totalTime)
 void Game::OnMouseDown(WPARAM buttonState, int x, int y)
 {
 	// Add any custom code here...
+	//left click
+
 
 	// Save the previous mouse position, so we have it for the future
 	prevMousePos.x = x;
@@ -342,6 +341,10 @@ void Game::OnMouseUp(WPARAM buttonState, int x, int y)
 void Game::OnMouseMove(WPARAM buttonState, int x, int y)
 {
 	// Add any custom code here...
+	if (buttonState & 0x0001) {
+		camera->RotateAroundUp((x - prevMousePos.x) / 1000.0f);
+		camera->RotateAroundRight((y - prevMousePos.y) / 1000.0f);
+	}
 
 	// Save the previous mouse position, so we have it for the future
 	prevMousePos.x = x;

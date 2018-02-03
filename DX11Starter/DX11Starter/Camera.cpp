@@ -109,7 +109,10 @@ void Camera::RotateAroundUp(float rotationAmt)
 
 void Camera::RotateAroundRight(float rotationAmt)
 {
-	rotX += rotationAmt;
+	float newAmt = rotX + rotationAmt;
+	if (newAmt < XM_PIDIV2 && newAmt > -XM_PIDIV2) {
+		rotX = newAmt;
+	} 
 	CalcDirection();
 	shouldCalcViewMat = true;
 }

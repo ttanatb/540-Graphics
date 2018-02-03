@@ -196,7 +196,7 @@ void Game::CreateBasicGeometry()
 
 	gameEntities.push_back(new GameEntity(mesh2, vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(2.0f, 0.5f, -1.0f)));
 	gameEntities.push_back(new GameEntity(mesh2, vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, -1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(mesh2, vec3(0.5f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(-2.0f, -2.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(mesh2, vec3(0.0f, -2.5f, -5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
 	gameEntities.push_back(new GameEntity(mesh1, vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 	gameEntities.push_back(new GameEntity(mesh3, vec3(-4.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 

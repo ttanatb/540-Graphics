@@ -6,6 +6,7 @@
 #include "GameEntity.h"
 #include "Camera.h"
 #include <vector>
+#include "Lights.h"
 
 class Game 
 	: public DXCore
@@ -36,11 +37,11 @@ private:
 	void InitInput();
 
 	Input* inputPtr;
+	DirectionalLight directionalLight;
+	DirectionalLight directionalLight2;
 
 	// Mesh objects
-	Mesh* mesh1;
-	Mesh* mesh2;
-	Mesh* mesh3;
+	std::vector<Mesh*> meshes;
 
 	//Material
 	Material* basicMat;

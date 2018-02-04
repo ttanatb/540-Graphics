@@ -23,9 +23,6 @@ Game::Game(HINSTANCE hInstance)
 		true)			   // Show extra stats (fps) in title bar?
 {
 	// Initialize fields
-	mesh1 = nullptr;
-	mesh2 = nullptr;
-	mesh3 = nullptr;
 	camera = nullptr;
 	vertexShader = 0;
 	pixelShader = 0;
@@ -33,7 +30,7 @@ Game::Game(HINSTANCE hInstance)
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
 	CreateConsoleWindow(500, 120, 32, 120);
-	printf("Console window created successfully.  Feel free to printf() here.");
+	printf("Console window created successfully.  Feel free to printf() here.\n");
 #endif
 
 }
@@ -50,11 +47,11 @@ Game::~Game()
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		delete gameEntities[i];
 	}
-
+	for (size_t i = 0; i < meshes.size(); ++i) {
+		delete meshes[i];
+	}
 	Mesh::ReleasePrimitives();
-	
-	if (mesh1 != nullptr) delete mesh1;
-	if (mesh3 != nullptr) delete mesh3;
+
 	if (camera != nullptr) delete camera;
 	if (basicMat != nullptr) delete basicMat;
 	Input::ReleaseInstance();
@@ -78,7 +75,12 @@ void Game::Init()
 	CreateMatrices();
 	CreateBasicGeometry();
 	InitInput();
-
+	directionalLight = { vec4(0.1f, 0.1f, 0.1f, 1.0f),
+						 vec4(0.0f, 0.0f, 1.0f, 1.0f),
+						 vec3(1.0f, 0.0f, 0.0f) };
+	directionalLight2 = { vec4(0.1f, 0.1f, 0.1f, 1.0f),
+		vec4(0.0f, 1.0f, 0.0f, 1.0f),
+		vec3(0.0f, 0.5f, -0.8f) };
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -110,46 +112,10 @@ void Game::LoadShaders()
 // --------------------------------------------------------
 void Game::CreateMatrices()
 {
-	camera = new Camera((float)width, 
-		(float)height, 
-		vec3(0.0f, 0.0f, -5.0f), 
+	camera = new Camera((float)width,
+		(float)height,
+		vec3(0.0f, 0.0f, -5.0f),
 		0.0f, 0.0f);
-
-
-	// Set up world matrix
-	// - In an actual game, each object will need one of these and they should
-	//    update when/if the object moves (every frame)
-	// - You'll notice a "transpose" happening below, which is redundant for
-	//    an identity matrix.  This is just to show that HLSL expects a different
-	//    matrix (column major vs row major) than the DirectX Math library
-	//XMMATRIX W = XMMatrixIdentity();
-	//XMStoreFloat4x4(&worldMatrix, XMMatrixTranspose(W)); // Transpose for HLSL!
-
-	// Create the View matrix
-	// - In an actual game, recreate this matrix every time the camera 
-	//    moves (potentially every frame)
-	// - We're using the LOOK TO function, which takes the position of the
-	//    camera and the direction vector along which to look (as well as "up")
-	// - Another option is the LOOK AT function, to look towards a specific
-	//    point in 3D space
-	//XMVECTOR pos = XMVectorSet(0, 0, -5, 0);
-	//XMVECTOR dir = XMVectorSet(0, 0, 1, 0);
-	//XMVECTOR up = XMVectorSet(0, 1, 0, 0);
-	//XMMATRIX V = XMMatrixLookToLH(
-	//	pos,     // The position of the "camera"
-	//	dir,     // Direction the camera is looking
-	//	up);     // "Up" direction in 3D space (prevents roll)
-	//XMStoreFloat4x4(&viewMatrix, XMMatrixTranspose(V)); // Transpose for HLSL!
-
-	//// Create the Projection matrix
-	//// - This should match the window's aspect ratio, and also update anytime
-	////    the window resizes (which is already happening in OnResize() below)
-	//XMMATRIX P = XMMatrixPerspectiveFovLH(
-	//	0.25f * 3.1415926535f,		// Field of View Angle
-	//	(float)width / height,		// Aspect ratio
-	//	0.1f,						// Near clip plane distance
-	//	100.0f);					// Far clip plane distance
-	//XMStoreFloat4x4(&projectionMatrix, XMMatrixTranspose(P)); // Transpose for HLSL!
 }
 
 
@@ -158,47 +124,17 @@ void Game::CreateMatrices()
 // --------------------------------------------------------
 void Game::CreateBasicGeometry()
 {
-	// Create some temporary variables to represent colors
-	// - Not necessary, just makes things more readable
-	Color red = Color::Red();
-	Color green = Color::Green();
-	Color blue = Color::Blue();
+	meshes.push_back(new Mesh("Assets/helix.obj", device));
+	meshes.push_back(new Mesh("Assets/cone.obj", device));
+	meshes.push_back(new Mesh("Assets/cylinder.obj", device));
+	meshes.push_back(new Mesh("Assets/sphere.obj", device));
+	meshes.push_back(new Mesh("Assets/torus.obj", device));
 
-	// Set up the vertices of the triangle we would like to draw
-	// - We're going to copy this array, exactly as it exists in memory
-	//    over to a DirectX-controlled data structure (the vertex buffer)
-	Vertex vertices[] =
-	{
-		{ vec3(-2.0f, -1.0f, +0.0f), green.GetVec4() },
-		{ vec3(-0.0f, +1.5f, +0.0f), green.GetVec4() },
-		{ vec3(+2.0f, -1.0f, +0.0f), green.GetVec4() },
-	};
-
-	// Set up the indices, which tell us which vertices to use and in which order
-	// - This is somewhat redundant for just 3 vertices (it's a simple example)
-	// - Indices are technically not required if the vertices are in the buffer 
-	//    in the correct order and each one will be used exactly once
-	// - But just to see how it's done...
-	int indices[] = { 0, 1, 2, 2, 1, 0 };
-
-	mesh1 = new Mesh(vertices, 3, indices, 6, device);
-	Mesh::CreateCube(device);
-	mesh2 = Mesh::GetCubeMeshPtr();
-
-	Vertex vertices3[] =
-	{
-		{ vec3(+2.0f, +1.5f, +0.0f), blue.GetVec4() },
-		{ vec3(+3.5f, +1.5f, +0.0f), blue.GetVec4() },
-		{ vec3(+2.0f, -1.0f, +0.0f), blue.GetVec4() },
-	};
-
-	mesh3 = new Mesh(vertices3, 3, indices, 3, device);
-
-	gameEntities.push_back(new GameEntity(mesh2, vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(2.0f, 0.5f, -1.0f)));
-	gameEntities.push_back(new GameEntity(mesh2, vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, -1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(mesh2, vec3(0.0f, -2.5f, -5.0f), vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(mesh1, vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
-	gameEntities.push_back(new GameEntity(mesh3, vec3(-4.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
+	gameEntities.push_back(new GameEntity(meshes[0], vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 0.5f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshes[1], vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshes[2], vec3(0.0f, -0.5f, -1.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshes[3], vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 45.0f), vec3(0.5f, 0.5f, 0.5f)));
+	gameEntities.push_back(new GameEntity(meshes[4], vec3(-4.0f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		gameEntities[i]->SetMat(basicMat);
@@ -252,7 +188,7 @@ void Game::Update(float deltaTime, float totalTime)
 	gameEntities[2]->ScaleBy(sin(totalTime) / 1000.0f, 0.0f, sin(totalTime) / 1000.0f);
 	gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
 	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 0.0f, deltaTime);
-	gameEntities[4]->TranslateBy(sin(totalTime * 20.0f)/ 500.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
+	gameEntities[4]->TranslateBy(sin(totalTime * 20.0f) / 500.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
@@ -276,6 +212,16 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+	pixelShader->SetData(
+		"directionalLight",
+		&directionalLight,
+		sizeof(DirectionalLight));
+	pixelShader->SetData(
+		"directionalLight2",
+		&directionalLight2,
+		sizeof(DirectionalLight));
+	pixelShader->CopyAllBufferData();
+
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();
 		Material * matPtr = gameEntities[i]->GetMat();
@@ -284,6 +230,8 @@ void Game::Draw(float deltaTime, float totalTime)
 		matPtr->PrepareMaterial(camera->GetViewMatTransposed(),
 			camera->GetProjMatTransposed(),
 			gameEntities[i]->GetWorldMat());
+
+		//if (a) std::cout << "a" << std::endl;
 
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;

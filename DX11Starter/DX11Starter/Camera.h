@@ -30,6 +30,7 @@ public:
 
 	mat4* GetViewMatTransposed();
 	mat4* GetProjMatTransposed();
+	vec3 GetPos();
 
 	void Move(float x, float y, float z);
 	void MoveAlongForward(float amt);

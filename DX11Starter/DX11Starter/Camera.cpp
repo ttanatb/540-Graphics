@@ -79,6 +79,11 @@ mat4* Camera::GetProjMatTransposed()
 	return &projMatTransposed;
 }
 
+vec3 Camera::GetPos()
+{
+	return position;
+}
+
 void Camera::Move(float x, float y, float z)
 {
 	XMVECTOR newPos = XMVectorAdd(XMVectorSet(x, y, z, 0.0f), XMLoadFloat3(&position));

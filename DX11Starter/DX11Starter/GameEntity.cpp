@@ -62,6 +62,17 @@ DirectX::XMFLOAT4X4* GameEntity::GetWorldMat()
 	return &worldMatTransposed;
 }
 
+vec3 GameEntity::GetPosition() { return position; }
+vec4 GameEntity::GetRotation() { return rotation; }
+vec3 GameEntity::GetRotEuler()
+{
+	return vec3();
+}
+
+vec3 GameEntity::GetScale() { return scale; }
+
+
+
 Mesh * GameEntity::GetMesh()
 {
 	return meshPtr;

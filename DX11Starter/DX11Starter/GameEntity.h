@@ -24,7 +24,7 @@ public:
 
 	DirectX::XMFLOAT4X4* GetWorldMat();
 	vec3 GetPosition();
-	vec3 GetRotation();
+	vec4 GetRotation();
 	vec3 GetRotEuler();
 	vec3 GetScale();
 

@@ -4,9 +4,12 @@
 #include "SimpleShader.h"
 #include "Input.h"
 #include "GameEntity.h"
+#include "MaterialManager.h"
+#include "MeshManager.h"
 #include "Camera.h"
 #include <vector>
 #include "Lights.h"
+#include "WICTextureLoader.h"
 
 class Game 
 	: public DXCore
@@ -33,19 +36,20 @@ private:
 	// Initialization helper methods - feel free to customize, combine, etc.
 	void LoadShaders(); 
 	void CreateMatrices();
-	void CreateBasicGeometry();
+	void LoadMeshAndMat();
+	void CreateGameEntities();
 	void InitInput();
 
-	Input* inputPtr;
+	Input* inputMngr;
+
+	vec4 ambientLight;
 	DirectionalLight directionalLight;
 	DirectionalLight directionalLight2;
+	PointLight pointLight;
 
-	// Mesh objects
-	std::vector<Mesh*> meshes;
-
-	//Material
-	Material* basicMat;
-
+	//Some Managers
+	MaterialManager* matMngr;
+	MeshManager* meshMngr;
 	//camera
 	Camera* camera;
 
@@ -55,11 +59,6 @@ private:
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
 	SimplePixelShader* pixelShader;
-
-	// The matrices to go from model space to screen space
-	//DirectX::XMFLOAT4X4 worldMatrix;
-	//DirectX::XMFLOAT4X4 viewMatrix;
-	//DirectX::XMFLOAT4X4 projectionMatrix;
 
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.

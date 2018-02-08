@@ -47,13 +47,12 @@ Game::~Game()
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		delete gameEntities[i];
 	}
-	for (size_t i = 0; i < meshes.size(); ++i) {
-		delete meshes[i];
-	}
+
 	Mesh::ReleasePrimitives();
 
 	if (camera != nullptr) delete camera;
-	if (basicMat != nullptr) delete basicMat;
+	MaterialManager::ReleaseInstance();
+	MeshManager::ReleaseInstance();
 	Input::ReleaseInstance();
 
 	// Delete our simple shader objects, which
@@ -73,14 +72,16 @@ void Game::Init()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 	CreateMatrices();
-	CreateBasicGeometry();
+	LoadMeshAndMat();
+	CreateGameEntities();
 	InitInput();
-	directionalLight = { vec4(0.1f, 0.1f, 0.1f, 1.0f),
-						 vec4(0.0f, 0.0f, 1.0f, 1.0f),
-						 vec3(1.0f, 0.0f, 0.0f) };
-	directionalLight2 = { vec4(0.1f, 0.1f, 0.1f, 1.0f),
-		vec4(0.0f, 1.0f, 0.0f, 1.0f),
-		vec3(0.0f, 0.5f, -0.8f) };
+	directionalLight = { vec4(0.1f, 0.5f, 0.1f, 1.0f),
+						 vec3(1.0f, 1.0f, 0.0f) };
+	directionalLight2 = { vec4(0.8f, 0.8f, 0.5f, 1.0f),
+						  vec3(0.0f, -1.0f, 1.0f) };
+	pointLight = { vec4(0.1f, 0.1f, 0.8f, 1.0f),
+					vec3(0.0f, 5.0f, -5.0f) };
+	ambientLight = vec4(0.1f, 0.1f, 0.1f, 1.0f);
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -100,8 +101,6 @@ void Game::LoadShaders()
 
 	pixelShader = new SimplePixelShader(device, context);
 	pixelShader->LoadShaderFile(L"PixelShader.cso");
-
-	basicMat = new Material(vertexShader, pixelShader);
 }
 
 
@@ -122,30 +121,46 @@ void Game::CreateMatrices()
 // --------------------------------------------------------
 // Creates the geometry we're going to draw - a single triangle for now
 // --------------------------------------------------------
-void Game::CreateBasicGeometry()
+void Game::LoadMeshAndMat()
 {
-	meshes.push_back(new Mesh("Assets/helix.obj", device));
-	meshes.push_back(new Mesh("Assets/cone.obj", device));
-	meshes.push_back(new Mesh("Assets/cylinder.obj", device));
-	meshes.push_back(new Mesh("Assets/sphere.obj", device));
-	meshes.push_back(new Mesh("Assets/torus.obj", device));
+	matMngr = MaterialManager::GetInstancce();
+	matMngr->Init(device, context);
 
-	gameEntities.push_back(new GameEntity(meshes[0], vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 0.5f, 1.0f)));
-	gameEntities.push_back(new GameEntity(meshes[1], vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, 1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(meshes[2], vec3(0.0f, -0.5f, -1.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(meshes[3], vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 45.0f), vec3(0.5f, 0.5f, 0.5f)));
-	gameEntities.push_back(new GameEntity(meshes[4], vec3(-4.0f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
+	matMngr->AddMat("concrete", vertexShader, pixelShader, L"Assets/Textures/concrete.jpg");
+	matMngr->AddMat("soil", vertexShader, pixelShader, L"Assets/Textures/soil.jpg");
+	matMngr->AddMat("woodplanks", vertexShader, pixelShader, L"Assets/Textures/woodplanks.jpg");
 
-	for (size_t i = 0; i < gameEntities.size(); ++i) {
-		gameEntities[i]->SetMat(basicMat);
-	}
+	meshMngr = MeshManager::GetInstancce();
+	meshMngr->Init(device);
+
+	meshMngr->AddMesh("helix",		"Assets/Models/helix.obj");
+	meshMngr->AddMesh("cone",		"Assets/Models/cone.obj");
+	meshMngr->AddMesh("cylinder",	"Assets/Models/cylinder.obj");
+	meshMngr->AddMesh("sphere",		"Assets/Models/sphere.obj");
+	meshMngr->AddMesh("torus",		"Assets/Models/torus.obj");
+	meshMngr->AddMesh("cube",		"Assets/Models/cube.obj");
+}
+
+void Game::CreateGameEntities()
+{
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("helix"), vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 0.5f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cone"), vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cube"), vec3(0.0f, -0.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("sphere"), vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 45.0f), vec3(0.5f, 0.5f, 0.5f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(-4.0f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
+
+	gameEntities[0]->SetMat(matMngr->GetMat("woodplanks"));
+	gameEntities[1]->SetMat(matMngr->GetMat("concrete"));
+	gameEntities[2]->SetMat(matMngr->GetMat("soil"));
+	gameEntities[3]->SetMat(matMngr->GetMat("woodplanks"));
+	gameEntities[4]->SetMat(matMngr->GetMat("soil"));
 }
 
 void Game::InitInput()
 {
-	inputPtr = Input::GetInstance();
+	inputMngr = Input::GetInstance();
 	char usedChars[6] = { 'W', 'S', 'A', 'D', ' ', 'X' };
-	inputPtr->AddKeysToPollFor(usedChars, 6);
+	inputMngr->AddKeysToPollFor(usedChars, 6);
 }
 
 
@@ -173,11 +188,8 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
-	inputPtr->Update();
+	inputMngr->Update();
 	camera->Update();
-	//camera->Move(0.0f, cos(totalTime) / 800.0f, 0.0f);
-	//camera->RotateAroundRight(cos(totalTime) / 800.0f);
-	//camera->MoveAlongRight(sin(totalTime) / 200.0f);
 
 
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
@@ -185,7 +197,8 @@ void Game::Update(float deltaTime, float totalTime)
 	}
 	gameEntities[0]->TranslateBy(sin(totalTime) / 200.0f, 0.0f, 0.0f);
 	gameEntities[1]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
-	gameEntities[2]->ScaleBy(sin(totalTime) / 1000.0f, 0.0f, sin(totalTime) / 1000.0f);
+	//gameEntities[2]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, 0.0f);
+	gameEntities[2]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
 	gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
 	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 0.0f, deltaTime);
 	gameEntities[4]->TranslateBy(sin(totalTime * 20.0f) / 500.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
@@ -211,16 +224,12 @@ void Game::Draw(float deltaTime, float totalTime)
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
-
-	pixelShader->SetData(
-		"directionalLight",
-		&directionalLight,
-		sizeof(DirectionalLight));
-	pixelShader->SetData(
-		"directionalLight2",
-		&directionalLight2,
-		sizeof(DirectionalLight));
-	pixelShader->CopyAllBufferData();
+	pixelShader->SetFloat4("ambientColor", ambientLight);
+	pixelShader->SetFloat3("cameraPos", camera->GetPos());
+	pixelShader->SetData("directionalLight", &directionalLight, sizeof(DirectionalLight));
+	pixelShader->SetData("directionalLight2", &directionalLight2, sizeof(DirectionalLight));
+	pixelShader->SetData("pointLight", &pointLight, sizeof(PointLight));
+	//pixelShader->CopyAllBufferData();
 
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();

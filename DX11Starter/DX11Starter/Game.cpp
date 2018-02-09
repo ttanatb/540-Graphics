@@ -143,17 +143,19 @@ void Game::LoadMeshAndMat()
 
 void Game::CreateGameEntities()
 {
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("helix"), vec3(-2.0f, 1.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 0.5f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cone"), vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, 1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cube"), vec3(0.0f, -0.5f, 0.0f), vec3(0.0f, 45.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("helix"), vec3(0.0f, -0.5f, 2.0f), vec3(0.0f, 45.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f)));
 	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("sphere"), vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 45.0f), vec3(0.5f, 0.5f, 0.5f)));
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(-4.0f, -0.5f, 0.0f), vec3(45.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
 
 	gameEntities[0]->SetMat(matMngr->GetMat("woodplanks"));
 	gameEntities[1]->SetMat(matMngr->GetMat("concrete"));
 	gameEntities[2]->SetMat(matMngr->GetMat("soil"));
 	gameEntities[3]->SetMat(matMngr->GetMat("woodplanks"));
 	gameEntities[4]->SetMat(matMngr->GetMat("soil"));
+
+	gameEntities[4]->SetParent(gameEntities[0]);
 }
 
 void Game::InitInput()
@@ -191,17 +193,20 @@ void Game::Update(float deltaTime, float totalTime)
 	inputMngr->Update();
 	camera->Update();
 
-
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		gameEntities[i]->Update();
 	}
+
 	gameEntities[0]->TranslateBy(sin(totalTime) / 200.0f, 0.0f, 0.0f);
+	gameEntities[0]->RotateOnAxis(vec3(0.0f, 1.0f, 0.0f), deltaTime);
+	gameEntities[0]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f);
 	gameEntities[1]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
-	//gameEntities[2]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, 0.0f);
+	gameEntities[2]->ScaleBy(sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f);
 	gameEntities[2]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
 	gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
 	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 0.0f, deltaTime);
-	gameEntities[4]->TranslateBy(sin(totalTime * 20.0f) / 500.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
+	gameEntities[4]->RotateOnAxis(vec3(0.0f, 0.0f, 1.0f), deltaTime);
+
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
@@ -224,12 +229,16 @@ void Game::Draw(float deltaTime, float totalTime)
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
+
+	//set per frame data
 	pixelShader->SetFloat4("ambientColor", ambientLight);
-	pixelShader->SetFloat3("cameraPos", camera->GetPos());
 	pixelShader->SetData("directionalLight", &directionalLight, sizeof(DirectionalLight));
 	pixelShader->SetData("directionalLight2", &directionalLight2, sizeof(DirectionalLight));
 	pixelShader->SetData("pointLight", &pointLight, sizeof(PointLight));
-	//pixelShader->CopyAllBufferData();
+
+	pixelShader->SetFloat3("cameraPos", camera->GetPos());
+	vertexShader->SetMatrix4x4("view", *(camera->GetViewMatTransposed()));
+	vertexShader->SetMatrix4x4("projection", *(camera->GetProjMatTransposed()));
 
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();
@@ -239,8 +248,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		matPtr->PrepareMaterial(camera->GetViewMatTransposed(),
 			camera->GetProjMatTransposed(),
 			gameEntities[i]->GetWorldMat());
-
-		//if (a) std::cout << "a" << std::endl;
 
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;

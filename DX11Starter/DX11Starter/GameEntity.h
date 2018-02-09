@@ -1,6 +1,7 @@
 #pragma once
 #include "Mesh.h"
 #include "Material.h"
+#include <vector>
 class GameEntity {
 private:
 	mat4 worldMatrix;// = MAT4_IDENTITY;
@@ -13,8 +14,11 @@ private:
 	Mesh* meshPtr = nullptr;
 	Material* matPtr = nullptr;
 
-	void Init();
+	GameEntity* parent = nullptr;
+	std::vector<GameEntity*> children;
+	mat4 parentWorldMatrix;
 
+	void Init();
 public:
 	GameEntity();
 	GameEntity(Mesh* mesh = nullptr, vec3 position = vec3(0.0f, 0.0f, 0.0f), vec4 rotation = vec4(0.0f, 0.0f, 0.0f, 1.0f), vec3 scale = vec3(1.0f, 1.0f, 1.0f));
@@ -23,6 +27,7 @@ public:
 	void Update();
 
 	DirectX::XMFLOAT4X4* GetWorldMat();
+	DirectX::XMMATRIX GetXMWorldMat();
 	vec3 GetPosition();
 	vec4 GetRotation();
 	vec3 GetRotEuler();
@@ -33,6 +38,7 @@ public:
 
 	Material * GetMat();
 	void SetMat(Material * newMat);
+	void SetParent(GameEntity* parent);
 
 	void SetPosition(vec3 newPos);
 	void SetPosition(float x, float y, float z);

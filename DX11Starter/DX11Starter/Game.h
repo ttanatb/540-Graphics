@@ -10,6 +10,7 @@
 #include <vector>
 #include "Lights.h"
 #include "WICTextureLoader.h"
+#include "Debug.h"
 
 class Game 
 	: public DXCore
@@ -50,6 +51,8 @@ private:
 	//Some Managers
 	MaterialManager* matMngr;
 	MeshManager* meshMngr;
+	Debug* debugMngr;
+
 	//camera
 	Camera* camera;
 
@@ -58,7 +61,9 @@ private:
 
 	// Wrappers for DirectX shaders to provide simplified functionality
 	SimpleVertexShader* vertexShader;
+	SimpleVertexShader* debugVShader;
 	SimplePixelShader* pixelShader;
+	SimplePixelShader* debugPShader;
 
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.

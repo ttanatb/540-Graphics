@@ -6,12 +6,14 @@
 class Material {
 private:
 	//texture
-	SimpleVertexShader* vertexShader;
-	SimplePixelShader* pixelShader;
-	ID3D11ShaderResourceView* srvPtr;
-	ID3D11SamplerState* samplerPtr;
+	SimpleVertexShader* vertexShader = nullptr;
+	SimplePixelShader* pixelShader = nullptr;
+	ID3D11ShaderResourceView* srvPtr = nullptr;
+	ID3D11SamplerState* samplerPtr = nullptr;
 public:
 	Material();
+	Material(SimpleVertexShader * vShader,
+		SimplePixelShader* pShader);
 	Material(SimpleVertexShader * vShader,
 		SimplePixelShader* pShader,
 		ID3D11Device* device,
@@ -25,5 +27,6 @@ public:
 	void SetVertexShader(SimpleVertexShader* newVertexShader);
 	void SetPixelShader(SimplePixelShader* newPixelShader);
 
-	void PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat);
+	void PrepMatTexture(mat4* worldMat);
+	void PrepMat(mat4* worldMat);
 };

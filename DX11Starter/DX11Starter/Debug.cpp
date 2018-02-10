@@ -9,19 +9,31 @@ Debug::Debug()
 	spheres = std::vector<mat4>();
 }
 
-void Debug::Initialize()
+Debug * Debug::GetInstance()
 {
 	if (instance == nullptr)
 		instance = new  Debug();
+
+	return instance;
 }
 
-void Debug::Release()
+void Debug::ReleaseInstance()
 {
 	if (instance != nullptr)
 		delete(instance);
 }
 
-void Debug::Draw()
+void Debug::SetShaders()
+{
+	//do some init stuff?
+}
+
+void Debug::Release()
+{
+	//??
+}
+
+void Debug::Draw(mat4* viewMat, mat4* projMat)
 {
 
 

@@ -1,11 +1,5 @@
 #include "Material.h"
 
-Material::Material(SimpleVertexShader * vShader, SimplePixelShader * pShader)
-{
-	vertexShader = vShader;
-	pixelShader = pShader;
-}
-
 Material::Material(SimpleVertexShader * vShader, SimplePixelShader * pShader, ID3D11Device* device, ID3D11DeviceContext* context, const wchar_t* fileName)
 {
 	vertexShader = vShader;
@@ -28,7 +22,7 @@ Material::~Material()
 	if (samplerPtr != nullptr) samplerPtr->Release();
 }
 
-void Material::PrepMatTexture(mat4 * worldMat)
+void Material::PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat)
 {
 	vertexShader->SetMatrix4x4("world", *worldMat);
 	vertexShader->CopyAllBufferData();
@@ -37,11 +31,4 @@ void Material::PrepMatTexture(mat4 * worldMat)
 	pixelShader->SetShaderResourceView("diffuseTexture", srvPtr);
 	pixelShader->CopyAllBufferData();
 	pixelShader->SetShader();
-}
-
-void Material::PrepMat(mat4 * worldMat)
-{
-	vertexShader->SetMatrix4x4("world", *worldMat);
-	vertexShader->CopyAllBufferData();
-	vertexShader->SetShader();
 }

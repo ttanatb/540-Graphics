@@ -70,6 +70,8 @@ float4 main(VertexToPixel input) : SV_TARGET
 	input.normal = normalize(input.normal);
 	float4 surfaceColor = diffuseTexture.Sample(basicSampler, input.uv);
 
+	float dirToPointLight = normalize(pointLight.position - input.worldPos);
+	
 	return surfaceColor * (ambientColor +
 		calcDirLightDiffuse(directionalLight, input.normal) +
 		calcDirLightDiffuse(directionalLight2, input.normal) +

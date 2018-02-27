@@ -26,8 +26,6 @@ Game::Game(HINSTANCE hInstance)
 	camera = nullptr;
 	vertexShader = 0;
 	pixelShader = 0;
-	debugVShader = 0;
-	debugPShader = 0;
 
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
@@ -56,13 +54,11 @@ Game::~Game()
 	MaterialManager::ReleaseInstance();
 	MeshManager::ReleaseInstance();
 	Input::ReleaseInstance();
-	Debug::ReleaseInstance();
+
 	// Delete our simple shader objects, which
 	// will clean up their own internal DirectX stuff
 	delete vertexShader;
 	delete pixelShader;
-	delete debugVShader;
-	delete debugPShader;
 }
 
 // --------------------------------------------------------
@@ -79,8 +75,6 @@ void Game::Init()
 	LoadMeshAndMat();
 	CreateGameEntities();
 	InitInput();
-	debugMngr = Debug::GetInstance();
-	debugMngr->SetShaders();
 	directionalLight = { vec4(0.1f, 0.5f, 0.1f, 1.0f),
 						 vec3(1.0f, 1.0f, 0.0f) };
 	directionalLight2 = { vec4(0.8f, 0.8f, 0.5f, 1.0f),
@@ -103,16 +97,10 @@ void Game::Init()
 void Game::LoadShaders()
 {
 	vertexShader = new SimpleVertexShader(device, context);
-	vertexShader->LoadShaderFile(L"vShader.cso");
+	vertexShader->LoadShaderFile(L"VertexShader.cso");
 
 	pixelShader = new SimplePixelShader(device, context);
-	pixelShader->LoadShaderFile(L"pShader.cso");	
-	
-	debugVShader = new SimpleVertexShader(device, context);
-	debugVShader->LoadShaderFile(L"vShaderUnlit.cso");
-
-	debugPShader = new SimplePixelShader(device, context);
-	debugPShader->LoadShaderFile(L"pShaderUnlitInstanced.cso");
+	pixelShader->LoadShaderFile(L"PixelShader.cso");
 }
 
 
@@ -205,6 +193,10 @@ void Game::Update(float deltaTime, float totalTime)
 	inputMngr->Update();
 	camera->Update();
 
+	for (size_t i = 0; i < gameEntities.size(); ++i) {
+		gameEntities[i]->Update();
+	}
+
 	gameEntities[0]->TranslateBy(sin(totalTime) / 200.0f, 0.0f, 0.0f);
 	gameEntities[0]->RotateOnAxis(vec3(0.0f, 1.0f, 0.0f), deltaTime);
 	gameEntities[0]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f);
@@ -214,10 +206,6 @@ void Game::Update(float deltaTime, float totalTime)
 	gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
 	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 0.0f, deltaTime);
 	gameEntities[4]->RotateOnAxis(vec3(0.0f, 0.0f, 1.0f), deltaTime);
-
-	for (size_t i = 0; i < gameEntities.size(); ++i) {
-		gameEntities[i]->Update();
-	}
 
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
@@ -243,22 +231,23 @@ void Game::Draw(float deltaTime, float totalTime)
 		0);
 
 	//set per frame data
-	debugMngr->Draw(camera->GetViewMatTransposed(), camera->GetProjMatTransposed());
-	vertexShader->SetMatrix4x4("view", *(camera->GetViewMatTransposed()));
-	vertexShader->SetMatrix4x4("projection", *(camera->GetProjMatTransposed()));
-
 	pixelShader->SetFloat4("ambientColor", ambientLight);
 	pixelShader->SetData("directionalLight", &directionalLight, sizeof(DirectionalLight));
 	pixelShader->SetData("directionalLight2", &directionalLight2, sizeof(DirectionalLight));
 	pixelShader->SetData("pointLight", &pointLight, sizeof(PointLight));
+
 	pixelShader->SetFloat3("cameraPos", camera->GetPos());
+	vertexShader->SetMatrix4x4("view", *(camera->GetViewMatTransposed()));
+	vertexShader->SetMatrix4x4("projection", *(camera->GetProjMatTransposed()));
 
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();
 		Material * matPtr = gameEntities[i]->GetMat();
 		if (meshPtr == nullptr || matPtr == nullptr) continue;
 
-		matPtr->PrepMatTexture(gameEntities[i]->GetWorldMat());
+		matPtr->PrepareMaterial(camera->GetViewMatTransposed(),
+			camera->GetProjMatTransposed(),
+			gameEntities[i]->GetWorldMat());
 
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;

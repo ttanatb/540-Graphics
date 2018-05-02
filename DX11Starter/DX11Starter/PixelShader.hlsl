@@ -39,6 +39,7 @@ struct VertexToPixel
 	float3 normal		: NORMAL;
 	float2 uv			: TEXCOORD;
 	float3 worldPos		: WORLD_POS;
+	float3 color		: COLOR;
 };
 
 float4 calcDirLightDiffuse(DirectionalLight dirLight, float3 normal) {
@@ -72,7 +73,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float dirToPointLight = normalize(pointLight.position - input.worldPos);
 	
-	return surfaceColor * (ambientColor +
+	return float4(input.color,0) + surfaceColor * (ambientColor +
 		calcDirLightDiffuse(directionalLight, input.normal) +
 		calcDirLightDiffuse(directionalLight2, input.normal) +
 		calcPointLightDiffuseSpec(pointLight, input.normal, input.worldPos, cameraPos, 256));

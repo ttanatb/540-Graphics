@@ -22,9 +22,10 @@ Material::~Material()
 	if (samplerPtr != nullptr) samplerPtr->Release();
 }
 
-void Material::PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat)
+void Material::PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat, SimpleDomainShader* domainShader)
 {
 	vertexShader->SetMatrix4x4("world", *worldMat);
+	domainShader->SetMatrix4x4("world", *worldMat);
 	vertexShader->CopyAllBufferData();
 	vertexShader->SetShader();
 	pixelShader->SetSamplerState("basicSampler", samplerPtr);

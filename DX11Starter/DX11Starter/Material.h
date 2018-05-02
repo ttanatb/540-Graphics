@@ -25,5 +25,5 @@ public:
 	void SetVertexShader(SimpleVertexShader* newVertexShader);
 	void SetPixelShader(SimplePixelShader* newPixelShader);
 
-	void PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat);
+	void PrepareMaterial(mat4* viewMat, mat4* projMat, mat4* worldMat, SimpleDomainShader* domainShader);
 };

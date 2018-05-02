@@ -26,6 +26,8 @@ Game::Game(HINSTANCE hInstance)
 	camera = nullptr;
 	vertexShader = 0;
 	pixelShader = 0;
+	domainShader = 0;
+	hullShader = 0;
 
 #if defined(DEBUG) || defined(_DEBUG)
 	// Do we want a console window?  Probably only in debug mode
@@ -59,6 +61,8 @@ Game::~Game()
 	// will clean up their own internal DirectX stuff
 	delete vertexShader;
 	delete pixelShader;
+	delete hullShader;
+	delete domainShader;
 }
 
 // --------------------------------------------------------
@@ -85,7 +89,8 @@ void Game::Init()
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	//context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 // --------------------------------------------------------
@@ -101,6 +106,12 @@ void Game::LoadShaders()
 
 	pixelShader = new SimplePixelShader(device, context);
 	pixelShader->LoadShaderFile(L"PixelShader.cso");
+
+	hullShader = new SimpleHullShader(device, context);
+	hullShader->LoadShaderFile(L"HullShader.cso");
+
+	domainShader = new SimpleDomainShader(device, context);
+	domainShader->LoadShaderFile(L"DomainShader.cso");
 }
 
 
@@ -133,20 +144,20 @@ void Game::LoadMeshAndMat()
 	meshMngr = MeshManager::GetInstancce();
 	meshMngr->Init(device);
 
-	meshMngr->AddMesh("helix",		"Assets/Models/helix.obj");
-	meshMngr->AddMesh("cone",		"Assets/Models/cone.obj");
-	meshMngr->AddMesh("cylinder",	"Assets/Models/cylinder.obj");
-	meshMngr->AddMesh("sphere",		"Assets/Models/sphere.obj");
-	meshMngr->AddMesh("torus",		"Assets/Models/torus.obj");
-	meshMngr->AddMesh("cube",		"Assets/Models/cube.obj");
+	meshMngr->AddMesh("helix", "Assets/Models/helix.obj");
+	meshMngr->AddMesh("cone", "Assets/Models/cone.obj");
+	meshMngr->AddMesh("cylinder", "Assets/Models/cylinder.obj");
+	meshMngr->AddMesh("sphere", "Assets/Models/sphere.obj");
+	meshMngr->AddMesh("torus", "Assets/Models/torus.obj");
+	meshMngr->AddMesh("cube", "Assets/Models/cube.obj");
 }
 
 void Game::CreateGameEntities()
 {
 	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(0.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cone"), vec3(-2.5f, -1.0f, 2.0f), vec3(45.0f, 0.0f, 45.0f), vec3(1.0f, 1.0f, 1.0f)));
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("helix"), vec3(0.0f, -0.5f, 2.0f), vec3(0.0f, 45.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f)));
-	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("sphere"), vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 45.0f), vec3(0.5f, 0.5f, 0.5f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("cone"), vec3(-2.5f, -1.0f, 2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("helix"), vec3(0.0f, -0.5f, 2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f)));
+	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("sphere"), vec3(3.0f, -0.5f, 0.0f), vec3(0.0f, 0.0f, 0.0f), vec3(0.5f, 0.5f, 0.5f)));
 	gameEntities.push_back(new GameEntity(meshMngr->GetMesh("torus"), vec3(0.0f, 0.0f, -2.0f), vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f)));
 
 	gameEntities[0]->SetMat(matMngr->GetMat("woodplanks"));
@@ -197,15 +208,15 @@ void Game::Update(float deltaTime, float totalTime)
 		gameEntities[i]->Update();
 	}
 
-	gameEntities[0]->TranslateBy(sin(totalTime) / 200.0f, 0.0f, 0.0f);
-	gameEntities[0]->RotateOnAxis(vec3(0.0f, 1.0f, 0.0f), deltaTime);
-	gameEntities[0]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f);
-	gameEntities[1]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
-	gameEntities[2]->ScaleBy(sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f);
-	gameEntities[2]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
-	gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
-	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 0.0f, deltaTime);
-	gameEntities[4]->RotateOnAxis(vec3(0.0f, 0.0f, 1.0f), deltaTime);
+	//gameEntities[0]->TranslateBy(sin(totalTime) / 200.0f, 0.0f, 0.0f);
+	gameEntities[0]->RotateOnAxis(vec3(0.0f, 1.0f, 1.0f), deltaTime);
+	//gameEntities[0]->ScaleBy(sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f, sin(totalTime) / 1000.0f);
+	//gameEntities[1]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
+	//gameEntities[2]->ScaleBy(sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f, sin(totalTime) / 2000.0f);
+	//gameEntities[2]->RotateOnAxis(sin(totalTime), 0.0f, cos(totalTime), deltaTime * 2.0f);
+	//gameEntities[3]->TranslateBy(0.0f, cos(totalTime * 20.0f) / 500.0f, 0.0f);
+	gameEntities[3]->RotateOnAxis(0.0f, 1.0f, 1.0f, deltaTime);
+	//gameEntities[4]->RotateOnAxis(vec3(0.0f, 0.0f, 1.0f), deltaTime);
 
 	// Quit if the escape key is pressed
 	if (GetAsyncKeyState(VK_ESCAPE))
@@ -240,6 +251,9 @@ void Game::Draw(float deltaTime, float totalTime)
 	vertexShader->SetMatrix4x4("view", *(camera->GetViewMatTransposed()));
 	vertexShader->SetMatrix4x4("projection", *(camera->GetProjMatTransposed()));
 
+	domainShader->SetMatrix4x4("view", *(camera->GetViewMatTransposed()));
+	domainShader->SetMatrix4x4("projection", *(camera->GetProjMatTransposed()));
+
 	for (size_t i = 0; i < gameEntities.size(); ++i) {
 		Mesh* meshPtr = gameEntities[i]->GetMesh();
 		Material * matPtr = gameEntities[i]->GetMat();
@@ -247,7 +261,13 @@ void Game::Draw(float deltaTime, float totalTime)
 
 		matPtr->PrepareMaterial(camera->GetViewMatTransposed(),
 			camera->GetProjMatTransposed(),
-			gameEntities[i]->GetWorldMat());
+			gameEntities[i]->GetWorldMat(),
+			domainShader);
+
+		//if (i == 0) {
+			hullShader->SetShader();
+			domainShader->SetShader();
+		//}
 
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;
